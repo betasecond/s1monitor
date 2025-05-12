@@ -28,3 +28,4 @@ go.work
 config.yaml
 *.lock
 *.log
+/bin/

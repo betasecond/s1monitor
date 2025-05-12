@@ -1,0 +1,120 @@
+name: Build Release Binaries
+
+on:
+  release:
+    types: [created]
+
+permissions:
+  contents: write # 允许上传资源到发布
+
+jobs:
+  build:
+    name: Build and Upload Binaries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "stable"
+          check-latest: true
+          cache: true
+
+      # 提取版本号（去掉v前缀）
+      - name: Set version
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+
+      # 验证依赖项
+      - name: Verify dependencies
+        run: go mod verify
+
+      # 构建多平台二进制文件
+      - name: Build for multiple platforms
+        run: |
+          echo "Building version: ${{ env.VERSION }}"
+          
+          # 创建构建目录
+          mkdir -p dist
+          
+          # 构建Linux版本
+          echo "Building for Linux..."
+          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ env.VERSION }}" -o dist/s1monitor_linux_amd64 ./cmd/s1monitor
+          
+          # 构建Windows版本
+          echo "Building for Windows..."
+          GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ env.VERSION }}" -o dist/s1monitor_windows_amd64.exe ./cmd/s1monitor
+          
+          # 构建macOS版本
+          echo "Building for macOS..."
+          GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ env.VERSION }}" -o dist/s1monitor_darwin_amd64 ./cmd/s1monitor
+
+      # 准备发布文件
+      - name: Prepare release assets
+        run: |
+          # 复制支持文件
+          cp README.md dist/
+          cp 使用说明.md dist/
+          cp deploy_linux.sh dist/
+          cp start.bat dist/
+          
+          # 创建示例配置文件
+          cat > dist/config.yaml.example << EOF
+          # S1 论坛登录凭据
+          username: "your_username"
+          password: "your_password"
+          EOF
+          
+          # 为每个平台创建压缩包
+          cd dist
+          echo "Creating Windows package..."
+          zip -r s1monitor_${{ env.VERSION }}_windows_amd64.zip s1monitor_windows_amd64.exe README.md 使用说明.md start.bat config.yaml.example
+          
+          echo "Creating Linux package..."
+          tar -czf s1monitor_${{ env.VERSION }}_linux_amd64.tar.gz s1monitor_linux_amd64 README.md 使用说明.md deploy_linux.sh config.yaml.example
+          
+          echo "Creating macOS package..."
+          tar -czf s1monitor_${{ env.VERSION }}_darwin_amd64.tar.gz s1monitor_darwin_amd64 README.md 使用说明.md config.yaml.example
+          
+          # 显示创建的文件
+          ls -la
+
+      # 上传发布资源
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/s1monitor_${{ env.VERSION }}_windows_amd64.zip
+            dist/s1monitor_${{ env.VERSION }}_linux_amd64.tar.gz
+            dist/s1monitor_${{ env.VERSION }}_darwin_amd64.tar.gz
+          tag_name: ${{ github.event.release.tag_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 更新发布说明
+      - name: Update Release Description
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          body: |
+            # S1Monitor ${{ github.event.release.tag_name }} 发布版本
+            
+            本版本由GitHub Actions自动构建并发布。
+            
+            ## 下载链接
+            
+            - Windows: [s1monitor_${{ env.VERSION }}_windows_amd64.zip](https://github.com/${{ github.repository }}/releases/download/${{ github.event.release.tag_name }}/s1monitor_${{ env.VERSION }}_windows_amd64.zip)
+            - Linux: [s1monitor_${{ env.VERSION }}_linux_amd64.tar.gz](https://github.com/${{ github.repository }}/releases/download/${{ github.event.release.tag_name }}/s1monitor_${{ env.VERSION }}_linux_amd64.tar.gz)
+            - macOS: [s1monitor_${{ env.VERSION }}_darwin_amd64.tar.gz](https://github.com/${{ github.repository }}/releases/download/${{ github.event.release.tag_name }}/s1monitor_${{ env.VERSION }}_darwin_amd64.tar.gz)
+            
+            ## 安装说明
+            
+            详细安装和使用指南请参阅 [使用说明](https://github.com/${{ github.repository }}/blob/main/使用说明.md)。
+            
+            ## 变更日志
+            
+            - 初始发布版本
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

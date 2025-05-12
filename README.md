@@ -8,6 +8,8 @@ S1 论坛自动挂机工具（Go 版本）
 - 支持 TUI（终端用户界面）和后台守护进程模式
 - 自动重试登录（当会话失效时）
 - 日志记录
+- 跨平台支持（Windows、Linux、macOS）
+- 自动化发布流程
 
 ## 安装
 
@@ -99,6 +101,45 @@ sudo systemctl start s1monitor
 
 ```bash
 sudo journalctl -u s1monitor -f
+```
+
+## 发布流程
+
+本项目使用 GitHub Actions 实现自动化发布流程，包括以下步骤：
+
+### 创建新版本
+
+1. 为代码库打标签，使用语义化版本号格式：
+
+```bash
+git tag -a v1.0.0 -m "发布 v1.0.0 版本"
+git push origin v1.0.0
+```
+
+2. 推送标签后，GitHub Actions 会自动：
+   - 创建 GitHub Release
+   - 构建 Windows、Linux 和 macOS 版本的二进制文件
+   - 将二进制文件打包并作为资产上传到 Release 页面
+
+### 工作流文件
+
+- `create-release.yml`: 当推送标签时，创建 GitHub Release
+- `build-release-binaries.yml`: 当 Release 创建后，构建并上传二进制文件
+
+### 手动构建
+
+如果需要在本地构建多平台二进制文件，可以使用以下命令：
+
+#### Linux/macOS
+
+```bash
+make build-all
+```
+
+#### Windows
+
+```powershell
+.\build.ps1
 ```
 
 ## 许可证

@@ -1,0 +1,35 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*" # 当推送符合版本号模式的标签时触发，例如：v1.0.0
+
+permissions:
+  contents: write # 允许工作流创建发布
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: S1Monitor ${{ github.ref_name }}
+          body: |
+            # S1Monitor ${{ github.ref_name }} 发布版本
+            
+            本版本由GitHub Actions自动创建。二进制文件构建中，请稍候刷新以获取下载链接。
+            
+            ## 安装说明
+            
+            详细安装和使用指南请参阅 [使用说明](https://github.com/${{ github.repository }}/blob/main/使用说明.md)。
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
