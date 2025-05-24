@@ -18,7 +18,7 @@ S1 论坛自动挂机工具（Go 版本）
 确保你已安装 Go 1.16 或更高版本，然后运行：
 
 ```bash
-git clone https://github.com/yourusername/s1monitor.git
+git clone https://github.com/betasecond/s1monitor.git
 cd s1monitor
 go build -o s1monitor ./cmd/s1monitor
 ```
@@ -26,7 +26,7 @@ go build -o s1monitor ./cmd/s1monitor
 或者直接使用 `go install`：
 
 ```bash
-go install github.com/yourusername/s1monitor/cmd/s1monitor@latest
+go install github.com/betasecond/s1monitor/cmd/s1monitor@latest
 ```
 
 ### 从发行版下载
