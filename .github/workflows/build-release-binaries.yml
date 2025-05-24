@@ -1,8 +1,10 @@
 name: Build Release Binaries
 
 on:
-  release:
-    types: [created]
+  workflow_run:
+    workflows: ["Create Release"]
+    types:
+      - completed 
 
 permissions:
   contents: write # 允许上传资源到发布
@@ -21,11 +23,20 @@ jobs:
           go-version: "stable"
           check-latest: true
           cache: true
-
+      # 从 workflow_run 事件中提取原始的标签名
+      - name: 'Get release tag from workflow_run event'
+        id: get_tag
+        run: |
+          echo "Workflow run head_branch (expected tag): ${{ github.event.workflow_run.head_branch }}"
+          echo "RELEASE_TAG=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_ENV
+          
       # 提取版本号（去掉v前缀）
       - name: Set version
         id: version
-        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+        run: |
+          VERSION=${{ env.RELEASE_TAG }}
+          VERSION=${VERSION#v} # 使用 bash 的字符串操作去掉前缀 v
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
       # 验证依赖项
       - name: Verify dependencies
